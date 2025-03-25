@@ -9,8 +9,8 @@ const containerStyle = {
 };
 
 const defaultCenter = {
-  lat: 6.9271, // Default location (Colombo)
-  lng: 79.8612,
+  lat: 6.0174, // Default location (Colombo)
+  lng: 80.2489,
 };
 
 

@@ -1,7 +1,7 @@
 import { getDatabase, ref, onValue } from "firebase/database";
 import { app } from "./firebaseConfig"; // Firebase initialization
 import { db } from "./firebaseConfig";
-import { collection, doc, getDocs, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
+import { collection, doc, getDocs, updateDoc, deleteDoc, getDoc, addDoc, } from "firebase/firestore";
 import { auth } from "./firebaseConfig";
 import { User } from "../types/User";
 
@@ -36,7 +36,9 @@ export const getCurrentUser = async (): Promise<User | null> => {
     email: data.email || "",
     phone: data.phone || "",
     address: data.address || "",
+    profilePicture: data.profilePicture || "",
     role: data.role || "user",
+
   };
 };
 
@@ -65,7 +67,67 @@ export const deleteUser = async (userId: string) => {
   await deleteDoc(userRef);
 };
 
+// 📌 Fetch Events
+export const getEvents = async () => {
+  const snapshot = await getDocs(collection(db, "events"));
+  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+};
 
+// 📌 Fetch Updates
+export const getUpdates = async () => {
+  const snapshot = await getDocs(collection(db, "updates"));
+  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+};
+
+// 📌 Fetch Ratings
+export const getRatings = async () => {
+  const snapshot = await getDocs(collection(db, "ratings"));
+  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+};
+
+// 📌 Fetch Reviews
+export const getReviews = async () => {
+  const snapshot = await getDocs(collection(db, "reviews"));
+  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+};
+
+// 📌 Add an Event
+export const addEvent = async (eventData: any) => {
+  await addDoc(collection(db, "events"), eventData);
+};
+
+// 📌 Add an Update
+export const addUpdate = async (updateData: any) => {
+  await addDoc(collection(db, "updates"), updateData);
+};
+
+// 📌 Add a Rating
+export const addRating = async (ratingData: any) => {
+  await addDoc(collection(db, "ratings"), ratingData);
+};
+
+// 📌 Add a Review
+export const addReview = async (reviewData: any) => {
+  await addDoc(collection(db, "reviews"), reviewData);
+};
+
+
+
+// 📌 Fetch Data (Events, Updates, Ratings, Reviews)
+export const fetchCollection = async (collectionName: string) => {
+  const snapshot = await getDocs(collection(db, collectionName));
+  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+};
+
+// 📌 Add an Item (Event, Update, Rating, Review)
+export const addItem = async (collectionName: string, data: any) => {
+  await addDoc(collection(db, collectionName), data);
+};
+
+// 📌 Delete an Item
+export const deleteItem = async (collectionName: string, id: string) => {
+  await deleteDoc(doc(db, collectionName, id));
+};
 
 
 
