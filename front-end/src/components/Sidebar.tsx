@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, User, Trash, Settings, Users } from "lucide-react";
+import { Home, User, Trash, Settings, Users, Calendar, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getCurrentUser } from "@/firebase/db";
 
@@ -22,11 +22,17 @@ const Sidebar = () => {
     { href: "/dashboard", label: "Dashboard", icon: <Home size={20} /> },
     { href: "/dashboard/profile", label: "Profile", icon: <User size={20} /> },
     { href: "/dashboard/bins", label: "Bins", icon: <Trash size={20} /> },
+    { href: "/dashboard/events", label: "Events & Updates", icon: <Calendar size={20} /> },
+    { href: "/dashboard/reviews", label: "Ratings & Reviews", icon: <Star size={20} /> },
     { href: "/dashboard/settings", label: "Settings", icon: <Settings size={20} /> },
   ];
-
+  
   if (userRole === "admin") {
-    navItems.push({ href: "/dashboard/users", label: "Manage Users", icon: <Users size={20} /> });
+    navItems.push(
+      { href: "/dashboard/users", label: "Manage Users", icon: <Users size={20} /> },
+      { href: "/dashboard/adminEvents", label: "Manage Events & Updates", icon: <Calendar size={20} /> },
+      { href: "/dashboard/adminReviews", label: "Manage Ratings & Reviews", icon: <Star size={20} /> },
+    );
   }
 
   return (
