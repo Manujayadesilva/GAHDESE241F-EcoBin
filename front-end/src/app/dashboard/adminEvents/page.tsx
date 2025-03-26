@@ -2,97 +2,109 @@
 
 import { useEffect, useState } from "react";
 import Sidebar from "../../../components/Sidebar";
-import { fetchCollection, addItem, deleteItem } from "../../../firebase/db";
+import { getEvents, getUpdates, addEvent, deleteEvent } from "../../../firebase/db";
 
-const AdminEventsUpdates = () => {
+const EventsUpdates = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [updates, setUpdates] = useState<any[]>([]);
-  const [newEvent, setNewEvent] = useState("");
-  const [newUpdate, setNewUpdate] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [newEvent, setNewEvent] = useState({
+    title: "",
+    date: "",
+    time: "",
+    location: "",
+    description: "",
+  });
 
+  // ✅ Fetch Events & Updates
   useEffect(() => {
     const fetchData = async () => {
-      setEvents(await fetchCollection("events"));
-      setUpdates(await fetchCollection("updates"));
+      try {
+        const eventsData = await getEvents();
+        const updatesData = await getUpdates();
+        setEvents(eventsData);
+        setUpdates(updatesData);
+      } catch (error) {
+        console.error("Error fetching events/updates:", error);
+      }
     };
     fetchData();
   }, []);
 
-  // Add Event
+  // ✅ Add New Event
   const handleAddEvent = async () => {
-    if (newEvent.trim()) {
-      await addItem("events", { title: newEvent, date: new Date().toISOString() });
-      setEvents(await fetchCollection("events"));
-      setNewEvent("");
+    if (!newEvent.title || !newEvent.date || !newEvent.time || !newEvent.location || !newEvent.description) {
+      alert("Please fill all fields.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const newEventData = { ...newEvent, createdAt: new Date() }; // Add timestamp
+      await addEvent(newEventData);
+      setEvents((prev) => [...prev, newEventData]); // Update local state directly
+      setNewEvent({ title: "", date: "", time: "", location: "", description: "" });
+    } catch (error) {
+      console.error("Error adding event:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Add Update
-  const handleAddUpdate = async () => {
-    if (newUpdate.trim()) {
-      await addItem("updates", { title: newUpdate });
-      setUpdates(await fetchCollection("updates"));
-      setNewUpdate("");
+  // ✅ Delete Event
+  const handleDeleteEvent = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this event?")) return;
+    try {
+      await deleteEvent(id);
+      setEvents((prev) => prev.filter((event) => event.id !== id)); // Remove from state
+    } catch (error) {
+      console.error("Error deleting event:", error);
     }
-  };
-
-  // Delete Event or Update
-  const handleDelete = async (collection: string, id: string) => {
-    await deleteItem(collection, id);
-    if (collection === "events") setEvents(await fetchCollection("events"));
-    else setUpdates(await fetchCollection("updates"));
   };
 
   return (
     <div className="flex">
       <Sidebar />
       <main className="ml-64 p-8 w-full bg-gray-100 min-h-screen">
-        <h1 className="text-3xl font-bold mb-4">Manage Events & Updates</h1>
+        <h1 className="text-3xl font-bold mb-6">Events & Updates</h1>
 
-        {/* Events Section */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-bold mb-4">Upcoming Events</h2>
-          <input
-            type="text"
-            placeholder="Enter event title"
-            className="border p-2 rounded w-full mb-2"
-            value={newEvent}
-            onChange={(e) => setNewEvent(e.target.value)}
-          />
-          <button onClick={handleAddEvent} className="bg-blue-500 text-white p-2 rounded w-full">Add Event</button>
-          <ul>
-            {events.map((event) => (
-              <li key={event.id} className="p-3 border-b flex justify-between">
-                {event.title} - {new Date(event.date).toLocaleDateString()}
-                <button onClick={() => handleDelete("events", event.id)} className="text-red-500">Delete</button>
-              </li>
-            ))}
-          </ul>
+        {/* ✅ Add New Event */}
+        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+          <h2 className="text-xl font-bold mb-4">Add New Event</h2>
+          <input type="text" placeholder="Event Title" className="w-full p-2 border rounded mb-2"
+            value={newEvent.title} onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })} />
+          <input type="date" className="w-full p-2 border rounded mb-2"
+            value={newEvent.date} onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })} />
+          <input type="time" className="w-full p-2 border rounded mb-2"
+            value={newEvent.time} onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })} />
+          <input type="text" placeholder="Location" className="w-full p-2 border rounded mb-2"
+            value={newEvent.location} onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })} />
+          <textarea placeholder="Description" className="w-full p-2 border rounded mb-2"
+            value={newEvent.description} onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}></textarea>
+          <button onClick={handleAddEvent} className={`bg-green-500 text-white p-2 rounded ${loading ? "opacity-50 cursor-not-allowed" : ""}`} disabled={loading}>
+            {loading ? "Adding..." : "Add Event"}
+          </button>
         </div>
 
-        {/* Updates Section */}
-        <div className="bg-white p-6 rounded-lg shadow-md mt-6">
-          <h2 className="text-xl font-bold mb-4">Latest Updates</h2>
-          <input
-            type="text"
-            placeholder="Enter update"
-            className="border p-2 rounded w-full mb-2"
-            value={newUpdate}
-            onChange={(e) => setNewUpdate(e.target.value)}
-          />
-          <button onClick={handleAddUpdate} className="bg-blue-500 text-white p-2 rounded w-full">Add Update</button>
-          <ul>
-            {updates.map((update) => (
-              <li key={update.id} className="p-3 border-b flex justify-between">
-                {update.title}
-                <button onClick={() => handleDelete("updates", update.id)} className="text-red-500">Delete</button>
-              </li>
-            ))}
-          </ul>
+        {/* ✅ Events List */}
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-xl font-bold mb-4">Upcoming Events</h2>
+          {events.length === 0 ? <p>No upcoming events.</p> : (
+            events.map((event) => (
+              <div key={event.id} className="p-4 mb-4 bg-green-50 rounded-lg shadow">
+                <h3 className="text-lg font-semibold">{event.title}</h3>
+                <p className="text-sm text-gray-600">{event.date} | {event.time}</p>
+                <p className="text-sm text-gray-700">{event.location}</p>
+                <p className="text-gray-800">{event.description}</p>
+                <button onClick={() => handleDeleteEvent(event.id)} className="mt-2 bg-red-500 text-white px-3 py-1 rounded">
+                  Delete
+                </button>
+              </div>
+            ))
+          )}
         </div>
       </main>
     </div>
   );
 };
 
-export default AdminEventsUpdates;
+export default EventsUpdates;

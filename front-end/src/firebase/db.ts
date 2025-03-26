@@ -1,23 +1,23 @@
 import { getDatabase, ref, onValue } from "firebase/database";
 import { app } from "./firebaseConfig"; // Firebase initialization
 import { db } from "./firebaseConfig";
-import { collection, doc, getDocs, updateDoc, deleteDoc, getDoc, addDoc, } from "firebase/firestore";
+import { collection, doc, getDocs, updateDoc, deleteDoc, getDoc, addDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { auth } from "./firebaseConfig";
 import { User } from "../types/User";
+
 
 
 export const fetchBinsData = (setBins: (data: any) => void) => {
   const db = getDatabase(app);
   const binsRef = ref(db, "wasteBins");
 
-  onValue(binsRef, (snapshot) => {
-    if (snapshot.exists()) {
-      setBins(snapshot.val());
-    } else {
-      setBins(null);
-    }
+  const unsubscribe = onValue(binsRef, (snapshot) => {
+    setBins(snapshot.exists() ? snapshot.val() : null);
   });
+
+  return () => unsubscribe(); // Unsubscribes when component unmounts
 };
+
 
 // 📌 Fetch the current user's data
 export const getCurrentUser = async (): Promise<User | null> => {
@@ -53,6 +53,11 @@ export const getAllUsers = async () => {
   const usersRef = collection(db, "users");
   const snapshot = await getDocs(usersRef);
   return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+};
+
+export const getUserRole = async (userId: string) => {
+  const userDoc = await getDoc(doc(db, "users", userId));
+  return userDoc.exists() ? userDoc.data()?.role || "user" : "user";
 };
 
 // 📌 Update user role
@@ -127,6 +132,25 @@ export const addItem = async (collectionName: string, data: any) => {
 // 📌 Delete an Item
 export const deleteItem = async (collectionName: string, id: string) => {
   await deleteDoc(doc(db, collectionName, id));
+};
+
+
+export const registerForEvent = async (eventId: string, userId: string) => {
+  const eventRef = doc(db, "events", eventId);
+  await updateDoc(eventRef, {
+    participants: arrayUnion(userId),
+  });
+};
+
+export const cancelRegistration = async (eventId: string, userId: string) => {
+  const eventRef = doc(db, "events", eventId);
+  await updateDoc(eventRef, {
+    participants: arrayRemove(userId),
+  });
+};
+
+export const deleteEvent = async (eventId: string) => {
+  await deleteDoc(doc(db, "events", eventId));
 };
 
 
