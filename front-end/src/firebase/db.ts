@@ -1,7 +1,7 @@
 import { getDatabase, ref, onValue } from "firebase/database";
 import { app } from "./firebaseConfig"; // Firebase initialization
 import { db } from "./firebaseConfig";
-import { collection, doc, getDocs, updateDoc, deleteDoc, getDoc, addDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { collection, doc, getDocs, updateDoc, deleteDoc, getDoc, addDoc, arrayUnion, arrayRemove,  } from "firebase/firestore";
 import { auth } from "./firebaseConfig";
 import { User } from "../types/User";
 
@@ -152,6 +152,8 @@ export const cancelRegistration = async (eventId: string, userId: string) => {
 export const deleteEvent = async (eventId: string) => {
   await deleteDoc(doc(db, "events", eventId));
 };
+
+
 
 
 
