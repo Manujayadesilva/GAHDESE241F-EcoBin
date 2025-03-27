@@ -17,6 +17,7 @@ class ProfileOfUser extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+
       theme: ThemeData(
         primaryColor: const Color(0xFF2E7D32),
         colorScheme: ColorScheme.fromSeed(

@@ -2,8 +2,10 @@
 #include <FirebaseESP8266.h>     // Firebase library for ESP8266
 
 // WiFi Credentials
-#define WIFI_SSID "ST STAFF"
-#define WIFI_PASSWORD "39gug391"
+#define WIFI_SSID "Dialog 4G 399"
+#define WIFI_PASSWORD "31b06c07"
+
+
 
 // Firebase Credentials
 #define FIREBASE_HOST "https://smart-waste-management-3041a-default-rtdb.asia-southeast1.firebasedatabase.app/"
