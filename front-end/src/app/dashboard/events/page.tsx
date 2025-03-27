@@ -32,19 +32,24 @@ const EventsUpdates = () => {
   }, [user]);
 
   // ✅ Handle Event Registration
-  const handleRegister = async (eventId: string) => {
-    if (!user) return;
-    try {
-      await registerForEvent(eventId, user.uid);
-      setEvents((prev) =>
-        prev.map((event) =>
-          event.id === eventId ? { ...event, participants: [...event.participants, user.uid] } : event
-        )
-      );
-    } catch (error) {
-      console.error("Error registering:", error);
-    }
-  };
+const handleRegister = async (eventId: string) => {
+  if (!user) return;
+  try {
+    await registerForEvent(eventId, user.uid);
+
+    // ✅ Update local state
+    setEvents((prev) =>
+      prev.map((event) =>
+        event.id === eventId
+          ? { ...event, participants: [...(event.participants || []), user.uid] }
+          : event
+      )
+    );
+  } catch (error) {
+    console.error("Error registering:", error);
+  }
+};
+
 
   // ✅ Handle Cancel Registration
   const handleCancel = async (eventId: string) => {
