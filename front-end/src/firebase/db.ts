@@ -1,7 +1,7 @@
 import { getDatabase, ref, onValue } from "firebase/database";
 import { app } from "./firebaseConfig"; // Firebase initialization
 import { db } from "./firebaseConfig";
-import { collection, doc, getDocs, updateDoc, deleteDoc, getDoc, addDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { collection, doc, getDocs, updateDoc, deleteDoc, getDoc, addDoc, arrayUnion, arrayRemove,  } from "firebase/firestore";
 import { auth } from "./firebaseConfig";
 import { User } from "../types/User";
 
@@ -135,22 +135,32 @@ export const deleteItem = async (collectionName: string, id: string) => {
 };
 
 
-export const registerForEvent = async (eventId: string, userId: string) => {
-  const eventRef = doc(db, "events", eventId);
-  await updateDoc(eventRef, {
-    participants: arrayUnion(userId),
-  });
-};
-
-export const cancelRegistration = async (eventId: string, userId: string) => {
-  const eventRef = doc(db, "events", eventId);
-  await updateDoc(eventRef, {
-    participants: arrayRemove(userId),
-  });
-};
-
 export const deleteEvent = async (eventId: string) => {
   await deleteDoc(doc(db, "events", eventId));
+};
+
+// ✅ Register for an event (Add user to participants)
+export const registerForEvent = async (eventId: string, userId: string) => {
+  const eventRef = doc(db, "events", eventId);
+  try {
+    await updateDoc(eventRef, {
+      participants: arrayUnion(userId),
+    });
+  } catch (error) {
+    console.error("Error registering for event:", error);
+  }
+};
+
+// ✅ Cancel event registration (Remove user from participants)
+export const cancelRegistration = async (eventId: string, userId: string) => {
+  const eventRef = doc(db, "events", eventId);
+  try {
+    await updateDoc(eventRef, {
+      participants: arrayRemove(userId),
+    });
+  } catch (error) {
+    console.error("Error canceling registration:", error);
+  }
 };
 
 
