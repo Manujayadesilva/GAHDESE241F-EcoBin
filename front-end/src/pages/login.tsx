@@ -4,6 +4,7 @@ import { login } from "../firebase/auth";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import "../app/globals.css";
+import { useAuth } from "../firebase/authContext"; // Adjust path based on your project
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -27,6 +28,7 @@ const Login = () => {
       setError(err.message);
     }
   };
+  
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
