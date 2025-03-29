@@ -5,7 +5,7 @@ import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/
 
 // Your Firebase config
 const firebaseConfig = {
-  apiKey: "secrets.FIREBASE",
+  apiKey: "AIzaSyBVRhl5af7yx04_MtYuN5ejYgSjbLwDdVU",
   authDomain: "smart-waste-management-3041a.firebaseapp.com",
   databaseURL: "https://smart-waste-management-3041a-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "smart-waste-management-3041a",

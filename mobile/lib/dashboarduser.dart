@@ -230,7 +230,6 @@ class _EcoBinDashboardState extends State<EcoBinDashboard> {
                           },
                         ),
 
-
                         _buildServiceCard(
                           icon: Icons.star_outline,
                           title: "Rate & Reviews",

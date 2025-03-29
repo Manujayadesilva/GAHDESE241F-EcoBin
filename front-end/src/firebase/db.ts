@@ -1,7 +1,7 @@
 import { getDatabase, ref, onValue } from "firebase/database";
 import { app } from "./firebaseConfig"; // Firebase initialization
 import { db } from "./firebaseConfig";
-import { collection, doc, getDocs, updateDoc, deleteDoc, getDoc, addDoc, arrayUnion, arrayRemove,  } from "firebase/firestore";
+import { collection, doc, getDocs, updateDoc, deleteDoc, getDoc, addDoc, arrayUnion, arrayRemove, query, where, orderBy  } from "firebase/firestore";
 import { auth } from "./firebaseConfig";
 import { User } from "../types/User";
 
@@ -163,6 +163,25 @@ export const cancelRegistration = async (eventId: string, userId: string) => {
   }
 };
 
+// Fetch all bins
+export const getBins = async () => {
+  const snapshot = await getDocs(collection(db, "bins"));
+  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+};
+
+// Fetch bin history for a specific bin
+export const fetchBinHistory = async (binId: string) => {
+  const historyRef = collection(db, `bins/${binId}/history`);
+  const querySnapshot = await getDocs(historyRef);
+  return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+};
+
+export const getBinHistory = async (binId: string) => {
+  const historyRef = collection(db, `bins/${binId}/history`);
+  const sortedQuery = query(historyRef, orderBy("timestamp", "desc"));
+  const querySnapshot = await getDocs(sortedQuery);
+  return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+};
 
 
 export type { User };
