@@ -6,7 +6,6 @@ import Sidebar from "../../../components/Sidebar";
 import { Line } from "react-chartjs-2";
 import Papa from "papaparse";
 import { saveAs } from "file-saver";
-
 import {
   Chart as ChartJS,
   LineElement,
@@ -29,28 +28,37 @@ type Bin = {
   lng: number;
 };
 
+type HistoryRecord = {
+  id: string;
+  timestamp: any;
+  wasteLevel: number;
+  status: string;
+  lat?: number;
+  lng?: number;
+};
+
 const BinsPage = () => {
   const [bins, setBins] = useState<Bin[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBin, setSelectedBin] = useState<string | null>(null);
-  const [history, setHistory] = useState<any[]>([]);
+  const [history, setHistory] = useState<HistoryRecord[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
   useEffect(() => {
     const fetchBins = async () => {
       try {
         const rawBinsData = await getBins();
-        const binsData: Bin[] = (rawBinsData as Bin[]).map((bin) => ({
-          id: bin.id,
-          location: bin.location || "Unknown",
-          wasteLevel: bin.wasteLevel || 0,
-          status: bin.status || "Unknown",
-          lat: bin.lat || 0,
-          lng: bin.lng || 0,
+        const binsData: Bin[] = rawBinsData.map((bin: Partial<Bin>) => ({
+          id: bin.id ?? "",
+          location: bin.location ?? "Unknown",
+          wasteLevel: bin.wasteLevel ?? 0,
+          status: bin.status ?? "Unknown",
+          lat: bin.lat ?? 0,
+          lng: bin.lng ?? 0,
         }));
         setBins(binsData);
 
-        // 🚨 Alert if any bin is full
+        // Alert if any bin is full
         binsData.forEach((bin) => {
           if (bin.status === "Full") {
             alert(`⚠️ Bin at ${bin.location} is FULL!`);
@@ -70,8 +78,26 @@ const BinsPage = () => {
     setSelectedBin(binId);
     setHistoryLoading(true);
     try {
-      const historyData = await getBinHistory(binId);
-      setHistory(historyData);
+      const rawHistoryData = await getBinHistory(binId);
+      const historyData: HistoryRecord[] = rawHistoryData.map((record: Partial<HistoryRecord>) => ({
+        id: record.id ?? "",
+        timestamp: record.timestamp ?? new Date(),
+        wasteLevel: record.wasteLevel ?? 0,
+        status: record.status ?? "Unknown",
+        lat: record.lat ?? 0,
+        lng: record.lng ?? 0,
+      }));
+      const formattedHistory = historyData.map((record) => ({
+        id: record.id,
+        timestamp: record.timestamp && typeof record.timestamp.toDate === "function" 
+          ? record.timestamp.toDate() 
+          : new Date(),
+        wasteLevel: record.wasteLevel ?? 0,
+        status: record.status ?? "Unknown",
+        lat: record.lat ?? 0,
+        lng: record.lng ?? 0,
+      }));
+      setHistory(formattedHistory);
     } catch (error) {
       console.error("Error fetching bin history:", error);
     } finally {
@@ -79,7 +105,7 @@ const BinsPage = () => {
     }
   };
 
-  // 📊 Prepare Chart Data
+  // Prepare Chart Data
   const chartData = {
     labels: history.map((record) => new Date(record.timestamp).toLocaleString()),
     datasets: [
@@ -93,7 +119,7 @@ const BinsPage = () => {
     ],
   };
 
-  // 📥 Export to CSV
+  // Export to CSV
   const exportToCSV = () => {
     const csvData = history.map((record) => ({
       Timestamp: new Date(record.timestamp).toLocaleString(),
@@ -143,13 +169,13 @@ const BinsPage = () => {
               <p>Loading history...</p>
             ) : history.length > 0 ? (
               <div>
-                {/* 📊 Waste Level Chart */}
+                {/* Waste Level Chart */}
                 <div className="bg-white p-6 rounded-lg shadow-md mt-4">
                   <h3 className="text-lg font-bold mb-2">Waste Level Over Time</h3>
                   <Line data={chartData} />
                 </div>
 
-                {/* 📥 Export Button */}
+                {/* Export Button */}
                 <button
                   onClick={exportToCSV}
                   className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg"

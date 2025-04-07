@@ -13,7 +13,7 @@
 
 // Firestore API
 #define FIRESTORE_PROJECT_ID "smart-waste-management-3041a"
-#define FIRESTORE_URL "https://firestore.googleapis.com/v1/projects/" FIRESTORE_PROJECT_ID "/databases/(default)/documents/bins/bin2/history"
+#define FIRESTORE_URL "https://firestore.googleapis.com/v1/projects/" FIRESTORE_PROJECT_ID "/databases/(default)/documents/bins/bin1/history"
 
 // Firebase Objects
 FirebaseData firebaseData;
