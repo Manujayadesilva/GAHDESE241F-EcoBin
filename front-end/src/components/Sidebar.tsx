@@ -32,6 +32,7 @@ const Sidebar = () => {
       { href: "/dashboard/admin", label: "Admin Dashboard", icon: <Home size={20} /> },
       ...navItems,
       { href: "/dashboard/bins", label: "Bins", icon: <Trash size={20} /> },
+      { href: "/dashboard/acces-records", label: "Access Records", icon: <Trash size={20} /> },
       { href: "/dashboard/users", label: "Manage Users", icon: <Users size={20} /> },
       { href: "/dashboard/adminEvents", label: "Manage Events & Updates", icon: <Calendar size={20} /> },
       { href: "/dashboard/adminReviews", label: "Manage Ratings & Reviews", icon: <Star size={20} /> },

@@ -1,7 +1,7 @@
 import { getDatabase, ref, onValue } from "firebase/database";
 import { app } from "./firebaseConfig"; // Firebase initialization
 import { db } from "./firebaseConfig";
-import { collection, doc, getDocs, updateDoc, deleteDoc, getDoc, addDoc, arrayUnion, arrayRemove, query, where, orderBy  } from "firebase/firestore";
+import { collection, doc, getDocs, updateDoc, deleteDoc, getDoc, addDoc, arrayUnion, arrayRemove, query, where, orderBy, collectionGroup  } from "firebase/firestore";
 import { auth } from "./firebaseConfig";
 import { User } from "../types/User";
 
@@ -182,6 +182,37 @@ export const getBinHistory = async (binId: string) => {
   const querySnapshot = await getDocs(sortedQuery);
   return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 };
+
+
+
+
+export const getAllAccessRecordsWithUserDetails = async () => {
+  const accessRecordsSnapshot = await getDocs(collectionGroup(db, "accessRecords"));
+
+  const accessRecords = await Promise.all(
+    accessRecordsSnapshot.docs.map(async (recordDoc) => {
+      const record = recordDoc.data();
+      const userRef = doc(db, "users", record.uid);
+      const userSnap = await getDoc(userRef);
+      const user = userSnap.exists() ? (userSnap.data() as User) : null;
+
+      return {
+        id: recordDoc.id,
+        binID: record.binID,
+        location: record.location,
+        timestamp: record.timestamp?.toDate().toLocaleString() || "N/A",
+        user: {
+          name: user?.name || "Unknown",
+          email: user?.email || "Unknown",
+        },
+      };
+    })
+  );
+
+  return accessRecords;
+};
+
+
 
 
 export type { User };
