@@ -18,6 +18,7 @@ interface AccessRecord {
 const AdminAccessPage = () => {
   const [records, setRecords] = useState<AccessRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedBin, setSelectedBin] = useState<string>("all");
 
   useEffect(() => {
     const fetchRecords = async () => {
@@ -28,6 +29,13 @@ const AdminAccessPage = () => {
     fetchRecords();
   }, []);
 
+  const filteredRecords =
+    selectedBin === "all"
+      ? records
+      : records.filter((record) => record.binID === selectedBin);
+
+  const uniqueBins = Array.from(new Set(records.map((r) => r.binID)));
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="fixed top-0 left-0 h-full w-64 z-50">
@@ -35,6 +43,24 @@ const AdminAccessPage = () => {
       </div>
       <main className="ml-64 p-6">
         <h1 className="text-2xl font-bold mb-4">Bin Access Records</h1>
+
+        {/* Bin Selector */}
+        <div className="mb-4">
+          <label className="block mb-2 text-sm font-medium">Filter by Bin:</label>
+          <select
+            value={selectedBin}
+            onChange={(e) => setSelectedBin(e.target.value)}
+            className="bg-gray-800 border border-gray-600 text-white py-2 px-4 rounded"
+          >
+            <option value="all">All Bins</option>
+            {uniqueBins.map((binID) => (
+              <option key={binID} value={binID}>
+                {binID}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {loading ? (
           <p>Loading access records...</p>
         ) : (
@@ -50,7 +76,7 @@ const AdminAccessPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {records.map((record) => (
+                {filteredRecords.map((record) => (
                   <tr
                     key={record.id}
                     className="border-b border-gray-600 hover:bg-gray-700"
@@ -64,6 +90,9 @@ const AdminAccessPage = () => {
                 ))}
               </tbody>
             </table>
+            {filteredRecords.length === 0 && (
+              <p className="text-sm mt-4 text-gray-400">No records found for selected bin.</p>
+            )}
           </div>
         )}
       </main>
