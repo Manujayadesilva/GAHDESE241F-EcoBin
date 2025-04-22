@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/cupertino.dart';
 
 // Models
 class BinOrder {
@@ -22,12 +23,7 @@ class BinOrder {
   });
 }
 
-enum OrderStatus {
-  pending,
-  inProgress,
-  completed,
-  cancelled
-}
+enum OrderStatus { pending, inProgress, completed, cancelled }
 
 class StaffDashboard extends StatefulWidget {
   const StaffDashboard({Key? key}) : super(key: key);
@@ -66,10 +62,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
             icon: Icon(Icons.delete_outline),
             label: 'Bin Orders',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.task),
-            label: 'Activities',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.task), label: 'Activities'),
           BottomNavigationBarItem(
             icon: Icon(Icons.monetization_on),
             label: 'Salary',
@@ -139,8 +132,12 @@ class _BinOrdersPageState extends State<BinOrdersPage> {
             child: TabBarView(
               children: [
                 _buildOrderList(_binOrders),
-                _buildOrderList(_binOrders.where((order) => order.isPaid).toList()),
-                _buildOrderList(_binOrders.where((order) => !order.isPaid).toList()),
+                _buildOrderList(
+                  _binOrders.where((order) => order.isPaid).toList(),
+                ),
+                _buildOrderList(
+                  _binOrders.where((order) => !order.isPaid).toList(),
+                ),
               ],
             ),
           ),
@@ -210,10 +207,14 @@ class _BinOrdersPageState extends State<BinOrdersPage> {
             children: [
               Text('Customer: ${order.customerName}'),
               Text('Address: ${order.address}'),
-              Text('Order Date: ${DateFormat('dd MMM yyyy').format(order.orderDate)}'),
+              Text(
+                'Order Date: ${DateFormat('dd MMM yyyy').format(order.orderDate)}',
+              ),
               Text('Price: \$${order.price.toStringAsFixed(2)}'),
               Text('Payment Status: ${order.isPaid ? 'Paid' : 'Unpaid'}'),
-              Text('Current Status: ${order.status.toString().split('.').last}'),
+              Text(
+                'Current Status: ${order.status.toString().split('.').last}',
+              ),
             ],
           ),
           actions: [
@@ -348,10 +349,7 @@ class SalaryPage extends StatelessWidget {
             const SizedBox(height: 10),
             const Text(
               '\$4,500.00',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
             Row(
@@ -406,7 +404,11 @@ class SalaryPage extends StatelessWidget {
     );
   }
 
-  Widget _buildBreakdownRow(String label, String amount, {bool isTotal = false}) {
+  Widget _buildBreakdownRow(
+    String label,
+    String amount, {
+    bool isTotal = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -463,17 +465,12 @@ class SalaryPage extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            month,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
+          Text(month, style: const TextStyle(fontWeight: FontWeight.bold)),
           Row(
             children: [
               Text(
                 amount,
-                style: TextStyle(
-                  color: isPaid ? Colors.green : Colors.red,
-                ),
+                style: TextStyle(color: isPaid ? Colors.green : Colors.red),
               ),
               const SizedBox(width: 10),
               Icon(

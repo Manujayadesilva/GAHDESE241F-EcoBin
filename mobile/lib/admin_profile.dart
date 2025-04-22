@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -11,11 +10,11 @@ import 'dart:io';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp(const ProfileOfUser());
+  runApp(const AdminProfileApp());
 }
 
-class ProfileOfUser extends StatelessWidget {
-  const ProfileOfUser({Key? key}) : super(key: key);
+class AdminProfileApp extends StatelessWidget {
+  const AdminProfileApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -62,19 +61,19 @@ class ProfileOfUser extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const ProfilePage(),
+      home: const AdminProfilePage(),
     );
   }
 }
 
-class ProfilePage extends StatefulWidget {
-  const ProfilePage({Key? key}) : super(key: key);
+class AdminProfilePage extends StatefulWidget {
+  const AdminProfilePage({Key? key}) : super(key: key);
 
   @override
-  _ProfilePageState createState() => _ProfilePageState();
+  _AdminProfilePageState createState() => _AdminProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _AdminProfilePageState extends State<AdminProfilePage> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _fullNameController;
   late TextEditingController _emailController;
@@ -86,6 +85,11 @@ class _ProfilePageState extends State<ProfilePage> {
   User? _currentUser;
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
+
+  // Reference to your specific Firebase Storage bucket
+  final FirebaseStorage _storage = FirebaseStorage.instanceFor(
+    bucket: 'gs://smart-waste-management-3041a.appspot.com',
+  );
 
   @override
   void initState() {
@@ -109,7 +113,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _getCurrentUser() async {
     _currentUser = FirebaseAuth.instance.currentUser;
     if (_currentUser != null) {
-      _fetchUserData();
+      _fetchAdminData();
     } else {
       setState(() {
         _isLoading = false;
@@ -117,7 +121,7 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  Future<void> _fetchUserData() async {
+  Future<void> _fetchAdminData() async {
     try {
       DocumentSnapshot doc =
           await FirebaseFirestore.instance
@@ -139,14 +143,11 @@ class _ProfilePageState extends State<ProfilePage> {
         setState(() {
           _fullNameController.text = _currentUser!.displayName ?? '';
           _emailController.text = _currentUser!.email ?? '';
-          _phoneController.text = _currentUser!.phoneNumber ?? '';
-          _addressController.text = '';
-          _profileImageUrl = _currentUser!.photoURL ?? '';
           _isLoading = false;
         });
       }
     } catch (e) {
-      print('Error fetching user data: $e');
+      print('Error fetching admin data: $e');
       setState(() {
         _isLoading = false;
       });
@@ -165,12 +166,18 @@ class _ProfilePageState extends State<ProfilePage> {
         source: ImageSource.gallery,
         maxWidth: 800,
         maxHeight: 800,
+        imageQuality: 85, // Added quality parameter
       );
 
       if (pickedFile != null) {
         setState(() {
           _selectedImage = File(pickedFile.path);
         });
+
+        // If not in edit mode, toggle to edit mode after picking an image
+        if (!_isEditing) {
+          _toggleEditMode();
+        }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -179,6 +186,57 @@ class _ProfilePageState extends State<ProfilePage> {
           backgroundColor: Colors.red,
         ),
       );
+    }
+  }
+
+  Future<String?> _uploadImage() async {
+    if (_selectedImage == null) return null;
+
+    try {
+      String filename = path.basename(_selectedImage!.path);
+      int dotIndex = filename.indexOf('.');
+      String fileExtension =
+          dotIndex != -1 && dotIndex < filename.length - 1
+              ? filename.substring(dotIndex + 1)
+              : 'jpg';
+
+      String storagePath =
+          'admin_profile_pictures/${_currentUser!.uid}_${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
+
+      // Create storage reference with explicit path
+      final Reference storageRef = _storage.ref().child(storagePath);
+
+      // Start upload with metadata
+      final SettableMetadata metadata = SettableMetadata(
+        contentType: 'image/$fileExtension',
+        customMetadata: {'userId': _currentUser!.uid},
+      );
+
+      // Upload with metadata and track progress
+      UploadTask uploadTask = storageRef.putFile(_selectedImage!, metadata);
+
+      // Monitor upload progress if needed
+      uploadTask.snapshotEvents.listen(
+        (TaskSnapshot snapshot) {
+          print(
+            'Upload progress: ${(snapshot.bytesTransferred / snapshot.totalBytes) * 100}%',
+          );
+        },
+        onError: (e) {
+          print('Upload error: $e');
+        },
+      );
+
+      // Wait for upload to complete
+      await uploadTask;
+
+      // Get download URL
+      String downloadUrl = await storageRef.getDownloadURL();
+      print('Image uploaded successfully: $downloadUrl');
+      return downloadUrl;
+    } catch (e) {
+      print('Error uploading image: $e');
+      throw e;
     }
   }
 
@@ -191,42 +249,39 @@ class _ProfilePageState extends State<ProfilePage> {
 
         String? photoURL;
         if (_selectedImage != null) {
-          String filename = path.basename(_selectedImage!.path);
-          int dotIndex = filename.indexOf('.');
-          String fileExtension;
-          if (dotIndex != -1 && dotIndex < filename.length - 1) {
-            fileExtension = filename.substring(dotIndex + 1);
-          } else {
-            fileExtension = 'jpg'; // default extension
+          try {
+            photoURL = await _uploadImage();
+            if (photoURL != null) {
+              await _currentUser!.updatePhotoURL(photoURL);
+            }
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error uploading profile image: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+            // Continue with other data updates even if image upload fails
           }
-
-          final storageRef = FirebaseStorage.instance
-              .ref()
-              .child('profile_pictures')
-              .child(
-                '${_currentUser!.uid}_${DateTime.now().millisecondsSinceEpoch}.$fileExtension',
-              );
-          await storageRef.putFile(_selectedImage!);
-          photoURL = await storageRef.getDownloadURL();
-
-          await _currentUser!.updatePhotoURL(photoURL);
         }
 
-        Map<String, dynamic> userData = {
+        Map<String, dynamic> adminData = {
           'name': _fullNameController.text,
           'email': _emailController.text,
           'phone': _phoneController.text,
           'address': _addressController.text,
+          'role': 'admin', // Always set role as admin in the backend
+          'updatedAt': FieldValue.serverTimestamp(),
         };
 
         if (photoURL != null) {
-          userData['photoURL'] = photoURL;
+          adminData['photoURL'] = photoURL;
         }
 
         await FirebaseFirestore.instance
             .collection('users')
             .doc(_currentUser!.uid)
-            .set(userData, SetOptions(merge: true));
+            .set(adminData, SetOptions(merge: true));
 
         await _currentUser!.updateDisplayName(_fullNameController.text);
 
@@ -234,12 +289,14 @@ class _ProfilePageState extends State<ProfilePage> {
           _isEditing = false;
           _isLoading = false;
           _selectedImage = null;
-          _profileImageUrl = photoURL ?? _profileImageUrl;
+          if (photoURL != null) {
+            _profileImageUrl = photoURL;
+          }
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Profile updated successfully'),
+            content: Text('Admin Profile updated successfully'),
             backgroundColor: Color(0xFF2E7D32),
             behavior: SnackBarBehavior.floating,
           ),
@@ -250,7 +307,7 @@ class _ProfilePageState extends State<ProfilePage> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error updating profile: $e'),
+            content: Text('Error updating admin profile: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -263,12 +320,8 @@ class _ProfilePageState extends State<ProfilePage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Profile' : 'My Profile'),
+        title: Text(_isEditing ? 'Edit Admin Profile' : 'Admin Profile'),
         centerTitle: true,
-        leading: CupertinoNavigationBarBackButton(
-          color: Colors.white,
-          onPressed: () => Navigator.of(context).pop(),
-        ),
         actions: [
           if (!_isEditing)
             IconButton(
@@ -303,7 +356,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             const Padding(
                               padding: EdgeInsets.only(bottom: 16),
                               child: Text(
-                                'EcoBin',
+                                'EcoBin Admin Portal',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w500,
@@ -331,71 +384,40 @@ class _ProfilePageState extends State<ProfilePage> {
                                   child: CircleAvatar(
                                     radius: 60,
                                     backgroundColor: Colors.white,
+                                    child: _buildProfileImage(),
+                                  ),
+                                ),
+                                // Camera icon is now visible regardless of edit mode
+                                Positioned(
+                                  right: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.1),
+                                          spreadRadius: 1,
+                                          blurRadius: 2,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
+                                    ),
                                     child: CircleAvatar(
-                                      radius: 58,
-                                      backgroundColor: Colors.grey[100],
-                                      backgroundImage:
-                                          _selectedImage != null
-                                              ? FileImage(_selectedImage!)
-                                              : (_profileImageUrl.isNotEmpty
-                                                  ? NetworkImage(
-                                                    _profileImageUrl,
-                                                  )
-                                                  : (_currentUser!.photoURL !=
-                                                              null
-                                                          ? NetworkImage(
-                                                            _currentUser!
-                                                                .photoURL!,
-                                                          )
-                                                          : null)
-                                                      as ImageProvider?),
-                                      child:
-                                          (_selectedImage == null &&
-                                                  _profileImageUrl.isEmpty &&
-                                                  _currentUser!.photoURL ==
-                                                      null)
-                                              ? const Icon(
-                                                Icons.person,
-                                                size: 48,
-                                                color: Color(0xFFAEAEAE),
-                                              )
-                                              : null,
+                                      backgroundColor:
+                                          Theme.of(context).primaryColor,
+                                      radius: 18,
+                                      child: IconButton(
+                                        icon: const Icon(
+                                          Icons.camera_alt,
+                                          color: Colors.white,
+                                          size: 18,
+                                        ),
+                                        onPressed: _pickImage,
+                                      ),
                                     ),
                                   ),
                                 ),
-                                if (_isEditing)
-                                  Positioned(
-                                    right: 0,
-                                    bottom: 0,
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(
-                                              0.1,
-                                            ),
-                                            spreadRadius: 1,
-                                            blurRadius: 2,
-                                            offset: const Offset(0, 1),
-                                          ),
-                                        ],
-                                      ),
-                                      child: CircleAvatar(
-                                        backgroundColor:
-                                            Theme.of(context).primaryColor,
-                                        radius: 18,
-                                        child: IconButton(
-                                          icon: const Icon(
-                                            Icons.camera_alt,
-                                            color: Colors.white,
-                                            size: 18,
-                                          ),
-                                          onPressed: _pickImage,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
                               ],
                             ),
                           ),
@@ -404,7 +426,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             alignment: Alignment.centerLeft,
                             margin: const EdgeInsets.only(bottom: 16, left: 4),
                             child: Text(
-                              'Personal Information',
+                              'Admin Information',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -509,10 +531,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                           color: Color(0xFF2E7D32),
                                           size: 20,
                                         ),
-                                        alignLabelWithHint: true,
                                       ),
-                                      keyboardType: TextInputType.streetAddress,
-                                      maxLines: 2,
                                       validator: (value) {
                                         if (value == null || value.isEmpty) {
                                           return 'Please enter your address';
@@ -549,29 +568,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                               ),
                             ),
-                          const SizedBox(height: 24),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: () async {
-                                await FirebaseAuth.instance.signOut();
-                                setState(() {
-                                  _currentUser = null;
-                                });
-                              },
-                              child: const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 16.0),
-                                child: Text(
-                                  'Sign Out',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
                         ],
                       ),
                     ),
@@ -579,19 +575,67 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  Widget _buildProfileImage() {
+    // Handle image display with better error handling
+    if (_selectedImage != null) {
+      return CircleAvatar(
+        radius: 58,
+        backgroundColor: Colors.grey[100],
+        backgroundImage: FileImage(_selectedImage!),
+      );
+    } else if (_profileImageUrl.isNotEmpty) {
+      return CircleAvatar(
+        radius: 58,
+        backgroundColor: Colors.grey[100],
+        backgroundImage: NetworkImage(_profileImageUrl),
+        onBackgroundImageError: (exception, stackTrace) {
+          print('Error loading profile image: $exception');
+        },
+      );
+    } else if (_currentUser?.photoURL != null) {
+      return CircleAvatar(
+        radius: 58,
+        backgroundColor: Colors.grey[100],
+        backgroundImage: NetworkImage(_currentUser!.photoURL!),
+        onBackgroundImageError: (exception, stackTrace) {
+          print('Error loading profile image: $exception');
+        },
+      );
+    } else {
+      return CircleAvatar(
+        radius: 58,
+        backgroundColor: Colors.grey[100],
+        child: const Icon(
+          Icons.admin_panel_settings,
+          size: 48,
+          color: Color(0xFFAEAEAE),
+        ),
+      );
+    }
+  }
+
   Widget _buildNotLoggedInView() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.account_circle, size: 100, color: Color(0xFFE0E0E0)),
+          const Icon(
+            Icons.admin_panel_settings,
+            size: 100,
+            color: Color(0xFFE0E0E0),
+          ),
           const SizedBox(height: 16),
           const Text(
-            'You are not logged in',
+            'Admin Access Required',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 32),
-          ElevatedButton(onPressed: () {}, child: const Text('Log In')),
+          ElevatedButton(
+            onPressed: () {
+              // Navigate to admin login
+            },
+            child: const Text('Admin Login'),
+          ),
         ],
       ),
     );

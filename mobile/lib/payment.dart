@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class PaymentPage extends StatefulWidget {
@@ -94,15 +95,9 @@ class _PaymentPageState extends State<PaymentPage> {
           appBar: AppBar(
             elevation: 0,
             backgroundColor: Colors.green.shade600,
-            title: const Text(
-              'Payment',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
+            title: const Text('Payment', style: TextStyle(color: Colors.white)),
+            leading: CupertinoNavigationBarBackButton(
+              color: Colors.white,
               onPressed: () => Navigator.of(context).pop(),
             ),
           ),
