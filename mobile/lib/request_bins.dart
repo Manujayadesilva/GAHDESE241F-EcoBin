@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 // Import this at the top of your file
 import 'payment.dart'; // Ensure this points to your PaymentPage file
@@ -80,6 +81,10 @@ class _BinRequestPageState extends State<BinRequestPage> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.green.shade600,
+        leading: CupertinoNavigationBarBackButton(
+          color: Colors.white,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: const Text(
           'Request Bins',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),

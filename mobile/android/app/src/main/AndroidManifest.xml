@@ -9,10 +9,10 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         
-        <!-- Add this meta-data tag for Google Maps API key -->
-        <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyB0GwJR6IujLTOHpieLQ8RYKlPDyDSXgDY" />
+        <meta-data android:name="com.google.android.geo.API_KEY"
+               android:value="Secret.firebase"/>
+       
+           
             
         <activity
             android:name=".MainActivity"

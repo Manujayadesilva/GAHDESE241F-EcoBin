@@ -1,27 +1,49 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class EventsAndUpdatesPage extends StatefulWidget {
-  const EventsAndUpdatesPage({Key? key}) : super(key: key);
+import 'signin_page.dart';
 
-  @override
-  State<EventsAndUpdatesPage> createState() => _EventsAndUpdatesPageState();
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(MyApp());
 }
 
-class _EventsAndUpdatesPageState extends State<EventsAndUpdatesPage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Events',
+      theme: ThemeData(
+        primarySwatch: Colors.green,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
+      home: EventsPage(),
+      routes: {
+        '/signin': (context) => SignInPage(), // You'll need to create this page
+      },
+    );
+  }
+}
+
+class EventsPage extends StatefulWidget {
+  const EventsPage({Key? key}) : super(key: key);
 
   @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
+  State<EventsPage> createState() => _EventsPageState();
+}
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
+class _EventsPageState extends State<EventsPage> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  // Track current filter settings
+  DateTime? _startDate;
+  DateTime? _endDate;
+  List<String> _selectedCategories = [];
 
   @override
   Widget build(BuildContext context) {
@@ -29,34 +51,30 @@ class _EventsAndUpdatesPageState extends State<EventsAndUpdatesPage>
       backgroundColor: Colors.white,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: const Color(0xFF2E7D32), // Changed to green
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back,
-            color: Colors.white,
-          ), // Changed icon color to white
-          onPressed: () => Navigator.pop(context),
+        backgroundColor: const Color(0xFF2E7D32),
+        leading: CupertinoNavigationBarBackButton(
+          color: Colors.white,
+          onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
-          "Events & Updates",
+          "Events",
           style: TextStyle(
             fontSize: 20,
-            fontWeight: FontWeight.bold, // Changed to bold
-            color: Colors.white, // Changed text color to white
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
         ),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: const Color(0xFF4CAF50),
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: const Color(0xFF4CAF50),
-          tabs: const [Tab(text: "Upcoming Events"), Tab(text: "Eco Updates")],
-        ),
+        actions: [
+          // Add user profile icon
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            onPressed: () {
+              _manageUserProfile();
+            },
+          ),
+        ],
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [_buildEventsTab(), _buildUpdatesTab()],
-      ),
+      body: _buildEventsTab(),
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF4CAF50),
         child: const Icon(Icons.filter_list),
@@ -67,122 +85,429 @@ class _EventsAndUpdatesPageState extends State<EventsAndUpdatesPage>
     );
   }
 
-  Widget _buildEventsTab() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _buildEventCard(
-          title: "Community Cleanup Day",
-          date: "Mar 22, 2025",
-          time: "09:00 AM - 01:00 PM",
-          location: "Central Park",
-          description:
-              "Join us for our monthly community cleanup event. Gloves and bags will be provided. Help us keep our parks clean!",
-          isRegistered: true,
+  // Profile management function
+  void _manageUserProfile() async {
+    User? currentUser = _auth.currentUser;
+
+    if (currentUser == null) {
+      _showSignInPrompt();
+      return;
+    }
+
+    // Navigate to profile page or show profile options
+    // This could be expanded in the future
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Logged in as: ${currentUser.email}'),
+        action: SnackBarAction(
+          label: 'Sign Out',
+          onPressed: () async {
+            await _auth.signOut();
+            setState(() {}); // Refresh UI after sign out
+          },
         ),
-        const SizedBox(height: 16),
-        _buildEventCard(
-          title: "Recycling Workshop",
-          date: "Mar 28, 2025",
-          time: "02:00 PM - 04:00 PM",
-          location: "Community Center",
-          description:
-              "Learn about creative ways to reuse common household items. Bring your own recyclables to transform them into useful items.",
-          isRegistered: false,
-        ),
-        const SizedBox(height: 16),
-        _buildEventCard(
-          title: "Earth Hour Celebration",
-          date: "Mar 30, 2025",
-          time: "08:30 PM - 10:00 PM",
-          location: "City Square",
-          description:
-              "Join the global movement by turning off your lights for one hour to raise awareness about climate change. Live music and speeches included.",
-          isRegistered: false,
-        ),
-        const SizedBox(height: 16),
-        _buildEventCard(
-          title: "Green Market Fair",
-          date: "Apr 05, 2025",
-          time: "10:00 AM - 05:00 PM",
-          location: "Riverside Park",
-          description:
-              "Shop sustainable products from local vendors. Food, crafts, and eco-friendly items available.",
-          isRegistered: false,
-        ),
-        const SizedBox(height: 16),
-        _buildEventCard(
-          title: "Tree Planting Day",
-          date: "Apr 12, 2025",
-          time: "10:00 AM - 02:00 PM",
-          location: "Highland Hills",
-          description:
-              "Help us plant 100 new trees in our neighborhood. Tools and saplings provided. Bring water and wear comfortable clothes.",
-          isRegistered: false,
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _buildUpdatesTab() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _buildUpdateCard(
-          title: "Reduce Plastic Waste",
-          date: "Mar 15, 2025",
-          description:
-              "Simple steps to minimize plastic in your daily life. Learn about alternatives to common single-use plastics and how to properly recycle plastic items.",
-          category: "Education",
-          imageIcon: Icons.eco_outlined,
+  Widget _buildEventsTab() {
+    // Build query with filters
+    Query eventsQuery = _firestore
+        .collection('events')
+        .orderBy('date', descending: false);
+
+    // Apply date filters if set
+    if (_startDate != null) {
+      eventsQuery = eventsQuery.where(
+        'date',
+        isGreaterThanOrEqualTo: Timestamp.fromDate(_startDate!),
+      );
+    }
+
+    if (_endDate != null) {
+      eventsQuery = eventsQuery.where(
+        'date',
+        isLessThanOrEqualTo: Timestamp.fromDate(_endDate!),
+      );
+    }
+
+    // Category filters would need to be applied differently as Firestore doesn't support OR queries directly
+    // For simplicity, we'll filter categories in the UI if needed
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: eventsQuery.snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(child: Text('No events found'));
+        }
+
+        // Apply category filtering in memory if needed
+        var eventDocs = snapshot.data!.docs;
+        if (_selectedCategories.isNotEmpty) {
+          eventDocs =
+              eventDocs.where((doc) {
+                var eventData = doc.data() as Map<String, dynamic>;
+                String category = eventData['category'] ?? '';
+                return _selectedCategories.contains(category);
+              }).toList();
+        }
+
+        if (eventDocs.isEmpty) {
+          return const Center(child: Text('No events match your filters'));
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: eventDocs.length,
+          itemBuilder: (context, index) {
+            var event = eventDocs[index];
+            var eventData = event.data() as Map<String, dynamic>;
+            var eventId = event.id;
+
+            // Check if current user is registered for this event
+            return FutureBuilder<bool>(
+              future: _isUserRegistered(eventId),
+              builder: (context, registrationSnapshot) {
+                bool isRegistered = registrationSnapshot.data ?? false;
+
+                return Column(
+                  children: [
+                    _buildEventCard(
+                      eventId: eventId,
+                      title: eventData['title'] ?? 'Event Title',
+                      date: _formatDate(eventData['date']),
+                      time: eventData['time'] ?? 'Time Not Specified',
+                      location:
+                          eventData['location'] ?? 'Location Not Specified',
+                      description:
+                          eventData['description'] ??
+                          'No description available',
+                      category: eventData['category'] ?? 'Uncategorized',
+                      isRegistered: isRegistered,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Check if user is registered for a specific event
+  Future<bool> _isUserRegistered(String eventId) async {
+    User? currentUser = _auth.currentUser;
+    if (currentUser == null) return false;
+
+    try {
+      var registrations =
+          await _firestore
+              .collection('registrations')
+              .where('userId', isEqualTo: currentUser.uid)
+              .where('eventId', isEqualTo: eventId)
+              .limit(1)
+              .get();
+
+      return registrations.docs.isNotEmpty;
+    } catch (e) {
+      print('Error checking registration status: $e');
+      return false;
+    }
+  }
+
+  // Get user data from Firestore
+  Future<Map<String, dynamic>> _getUserData() async {
+    User? currentUser = _auth.currentUser;
+    if (currentUser == null) return {};
+
+    try {
+      DocumentSnapshot userDoc =
+          await _firestore.collection('users').doc(currentUser.uid).get();
+
+      if (userDoc.exists) {
+        return userDoc.data() as Map<String, dynamic>;
+      } else {
+        // Create a new user document if it doesn't exist
+        Map<String, dynamic> newUserData = {
+          'email': currentUser.email,
+          'name': currentUser.displayName ?? 'Anonymous',
+          'createdAt': FieldValue.serverTimestamp(),
+        };
+
+        await _firestore
+            .collection('users')
+            .doc(currentUser.uid)
+            .set(newUserData);
+        return newUserData;
+      }
+    } catch (e) {
+      print('Error fetching user data: $e');
+      return {};
+    }
+  }
+
+  // Register user for event
+  Future<void> _registerForEvent(String eventId, String eventTitle) async {
+    User? currentUser = _auth.currentUser;
+
+    // If not signed in, show sign-in prompt
+    if (currentUser == null) {
+      _showSignInPrompt();
+      return;
+    }
+
+    try {
+      // Show loading indicator
+      _showLoadingDialog('Registering...');
+
+      // Get user data from Firebase
+      Map<String, dynamic> userData = await _getUserData();
+
+      // Create the registrations collection if it doesn't exist
+      CollectionReference registrationsRef = _firestore.collection(
+        'registrations',
+      );
+
+      // Register user for the event with error handling
+      try {
+        await registrationsRef.add({
+          'userId': currentUser.uid,
+          'eventId': eventId,
+          'eventTitle': eventTitle,
+          'registeredAt': FieldValue.serverTimestamp(),
+          'userEmail': currentUser.email,
+          'userName':
+              userData['name'] ?? currentUser.displayName ?? 'Anonymous',
+          'userPhone': userData['phone'] ?? '',
+        });
+
+        // Update event participation count (optional)
+        DocumentReference eventRef = _firestore
+            .collection('events')
+            .doc(eventId);
+        _firestore.runTransaction((transaction) async {
+          DocumentSnapshot eventDoc = await transaction.get(eventRef);
+          if (eventDoc.exists) {
+            int currentCount =
+                (eventDoc.data() as Map<String, dynamic>)['participantCount'] ??
+                0;
+            transaction.update(eventRef, {
+              'participantCount': currentCount + 1,
+            });
+          }
+        });
+
+        // Close loading dialog
+        Navigator.of(context, rootNavigator: true).pop();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Successfully registered for the event!'),
+            backgroundColor: Color(0xFF4CAF50),
+          ),
+        );
+        setState(() {}); // Refresh UI
+      } catch (error) {
+        // Close loading dialog
+        Navigator.of(context, rootNavigator: true).pop();
+
+        // Show more specific error message
+        String errorMessage = 'Registration failed. Please try again.';
+        if (error.toString().contains('permission-denied')) {
+          errorMessage =
+              'Permission denied. Make sure you are logged in with the correct account.';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      // Handle any other errors
+      if (Navigator.of(context, rootNavigator: true).canPop()) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      print('Registration error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to register: ${e.toString()}'),
+          backgroundColor: Colors.red,
         ),
-        const SizedBox(height: 16),
-        _buildUpdateCard(
-          title: "New Recycling Center Opening",
-          date: "Mar 18, 2025",
-          description:
-              "Visit our newest recycling center on Main Street. State-of-the-art facilities for all your recycling needs, including electronics and hazardous waste.",
-          category: "Announcement",
-          imageIcon: Icons.location_on_outlined,
+      );
+    }
+  }
+
+  // Show loading dialog
+  void _showLoadingDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Row(
+            children: [
+              const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+              ),
+              const SizedBox(width: 16),
+              Text(message),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Cancel registration
+  Future<void> _cancelRegistration(String eventId) async {
+    User? currentUser = _auth.currentUser;
+    if (currentUser == null) return;
+
+    try {
+      // Show loading indicator
+      _showLoadingDialog('Cancelling registration...');
+
+      // Find registration document
+      var registrations =
+          await _firestore
+              .collection('registrations')
+              .where('userId', isEqualTo: currentUser.uid)
+              .where('eventId', isEqualTo: eventId)
+              .get();
+
+      // Delete all matching registrations
+      for (var doc in registrations.docs) {
+        await doc.reference.delete();
+      }
+
+      // Close loading dialog
+      Navigator.of(context, rootNavigator: true).pop();
+
+      // Update event participation count (optional)
+      DocumentReference eventRef = _firestore.collection('events').doc(eventId);
+      _firestore.runTransaction((transaction) async {
+        DocumentSnapshot eventDoc = await transaction.get(eventRef);
+        if (eventDoc.exists) {
+          int currentCount =
+              (eventDoc.data() as Map<String, dynamic>)['participantCount'] ??
+              0;
+          if (currentCount > 0) {
+            transaction.update(eventRef, {
+              'participantCount': currentCount - 1,
+            });
+          }
+        }
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Registration cancelled'),
+          backgroundColor: Color(0xFF4CAF50),
         ),
-        const SizedBox(height: 16),
-        _buildUpdateCard(
-          title: "City Plans to Ban Single-Use Plastics",
-          date: "Mar 10, 2025",
-          description:
-              "The city council has proposed a new ordinance to ban single-use plastics in restaurants and retail establishments starting June 2025.",
-          category: "Policy",
-          imageIcon: Icons.policy_outlined,
+      );
+      setState(() {}); // Refresh UI
+    } catch (e) {
+      // Close loading dialog if open
+      if (Navigator.of(context, rootNavigator: true).canPop()) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to cancel registration: $e'),
+          backgroundColor: Colors.red,
         ),
-        const SizedBox(height: 16),
-        _buildUpdateCard(
-          title: "Water Conservation Tips",
-          date: "Mar 05, 2025",
-          description:
-              "With summer approaching, learn how to conserve water at home and in your garden. Simple changes can lead to significant savings.",
-          category: "Education",
-          imageIcon: Icons.water_drop_outlined,
-        ),
-        const SizedBox(height: 16),
-        _buildUpdateCard(
-          title: "EcoBin App Updates",
-          date: "Mar 01, 2025",
-          description:
-              "We've added new features to make recycling easier! Check out the improved bin locator and waste sorting guide in our latest update.",
-          category: "App Updates",
-          imageIcon: Icons.system_update_outlined,
-        ),
-      ],
+      );
+    }
+  }
+
+  // Show sign in prompt with improved styling
+  void _showSignInPrompt() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          backgroundColor: Colors.white,
+          contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+          actionsPadding: const EdgeInsets.all(16),
+          title: const Text(
+            'Sign In Required',
+            style: TextStyle(
+              color: Color(0xFF2E7D32),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            'You need to sign in before registering for an event.',
+            style: TextStyle(color: Colors.grey[800]),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.grey[700]),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // First close the dialog
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SignInPage(),
+                  ), // Navigate to your existing SignInPage
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4CAF50),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+              ),
+              child: const Text(
+                'Sign In',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
   Widget _buildEventCard({
+    required String eventId,
     required String title,
     required String date,
     required String time,
     required String location,
     required String description,
     required bool isRegistered,
+    String category = 'Uncategorized',
   }) {
     return Card(
       elevation: 2,
@@ -242,6 +567,30 @@ class _EventsAndUpdatesPageState extends State<EventsAndUpdatesPage>
                               color: Colors.grey[600],
                             ),
                           ),
+                          const SizedBox(width: 16),
+                          // Display category
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE8F5E9),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: const Color(0xFF4CAF50),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              category,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Color(0xFF4CAF50),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -278,9 +627,11 @@ class _EventsAndUpdatesPageState extends State<EventsAndUpdatesPage>
                       color: Color(0xFF4CAF50),
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      location,
-                      style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                    Expanded(
+                      child: Text(
+                        location,
+                        style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                      ),
                     ),
                   ],
                 ),
@@ -325,7 +676,13 @@ class _EventsAndUpdatesPageState extends State<EventsAndUpdatesPage>
                     else
                       Container(),
                     ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        if (isRegistered) {
+                          _cancelRegistration(eventId);
+                        } else {
+                          _registerForEvent(eventId, title);
+                        }
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor:
                             isRegistered
@@ -349,238 +706,304 @@ class _EventsAndUpdatesPageState extends State<EventsAndUpdatesPage>
     );
   }
 
-  Widget _buildUpdateCard({
-    required String title,
-    required String date,
-    required String description,
-    required String category,
-    required IconData imageIcon,
-  }) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: Color(0xFFE8F5E9),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    imageIcon,
-                    size: 28,
-                    color: const Color(0xFF4CAF50),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2E7D32),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text(
-                            date,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: const Color(0xFF4CAF50),
-                                width: 1,
-                              ),
-                            ),
-                            child: Text(
-                              category,
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: Color(0xFF4CAF50),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  description,
-                  style: TextStyle(fontSize: 14, color: Colors.grey[800]),
-                ),
-                const SizedBox(height: 16),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {},
-                    child: const Text(
-                      "Read More",
-                      style: TextStyle(
-                        color: Color(0xFF4CAF50),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showFilterDialog(BuildContext context) {
+    // Temporary state for the dialog
+    DateTime? tempStartDate = _startDate;
+    DateTime? tempEndDate = _endDate;
+    List<String> tempSelectedCategories = List.from(_selectedCategories);
+
     showDialog(
       context: context,
       builder:
-          (context) => AlertDialog(
-            title: const Text(
-              "Filter",
-              style: TextStyle(
-                color: Color(0xFF2E7D32),
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Date Range",
+          (context) => StatefulBuilder(
+            builder: (context, setState) {
+              return AlertDialog(
+                title: const Text(
+                  "Filter Events",
                   style: TextStyle(
                     color: Color(0xFF2E7D32),
-                    fontWeight: FontWeight.w500,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Row(
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {},
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.grey[700],
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: const Text("Start Date"),
+                    const Text(
+                      "Date Range",
+                      style: TextStyle(
+                        color: Color(0xFF2E7D32),
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {},
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.grey[700],
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () async {
+                              final DateTime? picked = await showDatePicker(
+                                context: context,
+                                initialDate: tempStartDate ?? DateTime.now(),
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime(2030),
+                                builder: (context, child) {
+                                  return Theme(
+                                    data: ThemeData.light().copyWith(
+                                      colorScheme: const ColorScheme.light(
+                                        primary: Color(0xFF4CAF50),
+                                      ),
+                                    ),
+                                    child: child!,
+                                  );
+                                },
+                              );
+                              if (picked != null) {
+                                setState(() {
+                                  tempStartDate = picked;
+                                });
+                              }
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.grey[700],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: Text(
+                              tempStartDate == null
+                                  ? "Start Date"
+                                  : "${tempStartDate!.day}/${tempStartDate!.month}/${tempStartDate!.year}",
+                            ),
                           ),
                         ),
-                        child: const Text("End Date"),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () async {
+                              final DateTime? picked = await showDatePicker(
+                                context: context,
+                                initialDate: tempEndDate ?? DateTime.now(),
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime(2030),
+                                builder: (context, child) {
+                                  return Theme(
+                                    data: ThemeData.light().copyWith(
+                                      colorScheme: const ColorScheme.light(
+                                        primary: Color(0xFF4CAF50),
+                                      ),
+                                    ),
+                                    child: child!,
+                                  );
+                                },
+                              );
+                              if (picked != null) {
+                                setState(() {
+                                  tempEndDate = picked;
+                                });
+                              }
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.grey[700],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: Text(
+                              tempEndDate == null
+                                  ? "End Date"
+                                  : "${tempEndDate!.day}/${tempEndDate!.month}/${tempEndDate!.year}",
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "Categories",
+                      style: TextStyle(
+                        color: Color(0xFF2E7D32),
+                        fontWeight: FontWeight.w500,
                       ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _buildFilterChipInDialog(
+                          "Cleanup",
+                          tempSelectedCategories,
+                          (selected) {
+                            setState(() {
+                              _toggleCategory(
+                                tempSelectedCategories,
+                                "Cleanup",
+                              );
+                            });
+                          },
+                        ),
+                        _buildFilterChipInDialog(
+                          "Education",
+                          tempSelectedCategories,
+                          (selected) {
+                            setState(() {
+                              _toggleCategory(
+                                tempSelectedCategories,
+                                "Education",
+                              );
+                            });
+                          },
+                        ),
+                        _buildFilterChipInDialog(
+                          "Workshop",
+                          tempSelectedCategories,
+                          (selected) {
+                            setState(() {
+                              _toggleCategory(
+                                tempSelectedCategories,
+                                "Workshop",
+                              );
+                            });
+                          },
+                        ),
+                        _buildFilterChipInDialog(
+                          "Community",
+                          tempSelectedCategories,
+                          (selected) {
+                            setState(() {
+                              _toggleCategory(
+                                tempSelectedCategories,
+                                "Community",
+                              );
+                            });
+                          },
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                const Text(
-                  "Categories",
-                  style: TextStyle(
-                    color: Color(0xFF2E7D32),
-                    fontWeight: FontWeight.w500,
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        tempStartDate = null;
+                        tempEndDate = null;
+                        tempSelectedCategories = [];
+                      });
+                    },
+                    child: const Text(
+                      "Reset",
+                      style: TextStyle(color: Colors.grey),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _buildFilterChip("Cleanup"),
-                    _buildFilterChip("Education"),
-                    _buildFilterChip("Workshop"),
-                    _buildFilterChip("Community"),
-                    _buildFilterChip("Policy"),
-                    _buildFilterChip("Announcement"),
-                  ],
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  "Reset",
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4CAF50),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                  ElevatedButton(
+                    onPressed: () {
+                      // Apply filters and close dialog
+                      this.setState(() {
+                        _startDate = tempStartDate;
+                        _endDate = tempEndDate;
+                        _selectedCategories = tempSelectedCategories;
+                      });
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4CAF50),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text("Apply"),
                   ),
-                ),
-                child: const Text("Apply"),
-              ),
-            ],
+                ],
+              );
+            },
           ),
     );
   }
 
+  void _toggleCategory(List<String> categories, String category) {
+    if (categories.contains(category)) {
+      categories.remove(category);
+    } else {
+      categories.add(category);
+    }
+  }
+
   Widget _buildFilterChip(String label) {
+    bool isSelected = _selectedCategories.contains(label);
+
     return FilterChip(
       label: Text(label),
-      selected: false,
-      onSelected: (selected) {},
+      selected: isSelected,
+      onSelected: (selected) {
+        setState(() {
+          _toggleCategory(_selectedCategories, label);
+        });
+      },
       backgroundColor: Colors.grey[200],
       selectedColor: const Color(0xFFE8F5E9),
       checkmarkColor: const Color(0xFF4CAF50),
-      labelStyle: TextStyle(color: Colors.grey[800]),
+      labelStyle: TextStyle(
+        color: isSelected ? const Color(0xFF4CAF50) : Colors.grey[800],
+      ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     );
+  }
+
+  Widget _buildFilterChipInDialog(
+    String label,
+    List<String> selectedCategories,
+    Function(bool) onSelected,
+  ) {
+    bool isSelected = selectedCategories.contains(label);
+
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: onSelected,
+      backgroundColor: Colors.grey[200],
+      selectedColor: const Color(0xFFE8F5E9),
+      checkmarkColor: const Color(0xFF4CAF50),
+      labelStyle: TextStyle(
+        color: isSelected ? const Color(0xFF4CAF50) : Colors.grey[800],
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    );
+  }
+
+  String _formatDate(dynamic date) {
+    if (date == null) return 'Date Not Specified';
+
+    DateTime dateTime;
+    if (date is Timestamp) {
+      dateTime = date.toDate();
+    } else if (date is DateTime) {
+      dateTime = date;
+    } else {
+      return 'Invalid Date';
+    }
+
+    return '${_getMonthName(dateTime.month)} ${dateTime.day}, ${dateTime.year}';
+  }
+
+  String _getMonthName(int month) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return months[month - 1];
   }
 }

@@ -41,7 +41,7 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyB0GwJR6IujLTOHpieLQ8RYKlPDyDSXgDY',
+    apiKey: 'Secret.firebase',
     appId: '1:378788627505:web:bc05cb057b77fc74e50110',
     messagingSenderId: '378788627505',
     projectId: 'smart-waste-management-3041a',
@@ -52,7 +52,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyB0GwJR6IujLTOHpieLQ8RYKlPDyDSXgDY',
+    apiKey: 'Secret.firebase',
     appId: '1:378788627505:android:d18cd3c952595044e50110',
     messagingSenderId: '378788627505',
     projectId: 'smart-waste-management-3041a',
@@ -62,7 +62,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyB0GwJR6IujLTOHpieLQ8RYKlPDyDSXgDY',
+    apiKey: 'Secret.firebase',
     appId: '1:378788627505:ios:d3401ff39eefd738e50110',
     messagingSenderId: '378788627505',
     projectId: 'smart-waste-management-3041a',
@@ -73,7 +73,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyB0GwJR6IujLTOHpieLQ8RYKlPDyDSXgDY',
+    apiKey: 'Secret.firebase',
     appId: '1:378788627505:ios:d3401ff39eefd738e50110',
     messagingSenderId: '378788627505',
     projectId: 'smart-waste-management-3041a',
@@ -84,7 +84,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyB0GwJR6IujLTOHpieLQ8RYKlPDyDSXgDY',
+    apiKey: 'Secret.firebase',
     appId: '1:378788627505:web:b0b8f430f7633560e50110',
     messagingSenderId: '378788627505',
     projectId: 'smart-waste-management-3041a',
