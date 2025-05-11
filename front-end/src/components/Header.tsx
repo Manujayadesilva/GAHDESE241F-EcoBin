@@ -15,23 +15,23 @@ const Header = () => {
         <ul className="flex justify-center gap-8 text-gray-900 font-medium">
           <li>
             <Link href="/" className="hover:text-gray-500">
-              Product
+              Soulutions
             </Link>
           </li>
           <li>
             <Link href="/features" className="hover:text-gray-500">
-              Features
+              Use Cases
             </Link>
           </li>
           
           <li>
             <Link href="/marketplace" className="hover:text-gray-500">
-              Marketplace
+              Company
             </Link>
           </li>
           <li>
             <Link href="/company" className="hover:text-gray-500">
-              Company
+              Contact Us
             </Link>
           </li>
         </ul>
