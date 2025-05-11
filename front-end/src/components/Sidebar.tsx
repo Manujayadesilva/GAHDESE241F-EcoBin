@@ -24,12 +24,10 @@ const Sidebar = () => {
     { href: "/dashboard/profile", label: "Profile", icon: <User size={20} /> },
     { href: "/dashboard/events", label: "Events & Updates", icon: <Calendar size={20} /> },
     { href: "/dashboard/reviews", label: "Ratings & Reviews", icon: <Star size={20} /> },
-    { href: "/dashboard/settings", label: "Settings", icon: <Settings size={20} /> },
   ];
   
   if (userRole === "admin") {
     navItems = [
-      { href: "/dashboard/admin", label: "Admin Dashboard", icon: <Home size={20} /> },
       ...navItems,
       { href: "/dashboard/bins", label: "Bins", icon: <Trash size={20} /> },
       { href: "/dashboard/acces-records", label: "Access Records", icon: <Trash size={20} /> },
@@ -41,11 +39,15 @@ const Sidebar = () => {
 
   return (
     <aside className="bg-gray-900 text-white w-64 h-screen p-6 fixed top-0 left-0 flex flex-col">
-      {/* Logo and App Name */}
-      <div className="flex items-center gap-3 mb-6">
+      {/* Logo and App Name as a Dashboard Link */}
+      <Link
+        href="/dashboard"
+        className="flex items-center gap-3 mb-6 cursor-pointer hover:opacity-90 transition-opacity"
+      >
         <Image src="/logo.webp" alt="Logo" width={40} height={40} />
         <h2 className="text-2xl font-bold">Waste Management</h2>
-      </div>
+      </Link>
+
 
       {/* Scrollable Navigation */}
       <nav className="flex-1 overflow-y-auto">
